@@ -248,7 +248,7 @@ void attribute_value(){
         match("PR_NULL");
     }
     else if(strcmp(t.compLex,"R_LLAVE")==0||strcmp(t.compLex,"COMA")==0||strcmp(t.compLex,"DOS_PUNTOS")==0){
-        sprintf(msg,"Se esperaba un \"{\" o \"[\" o \"string\" o \"{number\" o \"true\" o \"false\" o \"null\" no \"%s\"", t.pe->lexema);
+        sprintf(msg,"Se esperaba un \"{\" o \"[\" o \"string\" o \"number\" o \"true\" o \"false\" o \"null\" no \"%s\"", t.pe->lexema);
         error_msg(msg);
     }
     else getToken(); 
