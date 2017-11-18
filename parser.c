@@ -27,12 +27,32 @@ void attribute_value(void);
 
 // Funciones de traducción.
 char* tabulador(char*);
-//void destabulador(char*);
+void destabulador(char*);
 
 // Función de mensaje.
 void error_msg(char* mensaje){
     error_flag=1;
     printf("Lin %d: Error Sintáctico. %s.\n",linea(),mensaje);	
+}
+
+// Función que concatena tabulaciones.
+char* tabulador(char* texto){
+    char *tabs= malloc(sizeof(texto));
+    for(short i=0;i<nivel;i++){
+        strcat(tabs,"\t");
+    }
+    strcat(tabs,texto);
+    return tabs;
+}
+
+// Remueve todas las tabulaciones.
+void destabulador(char* texto){   
+    char *pr = texto, *pw = texto;
+    while (*pr) {
+        *pw = *pr++;
+        pw += (*pw != '\t');
+    }
+    *pw = '\0';
 }
 
 void getToken(void) {
@@ -45,13 +65,11 @@ void match(char* c){
 }
 
 void json(){
-    printf("json: %s\n",t.compLex);
     element();
     match("EOF");
 }
 
 void element(){  
-    printf("element: %s\n",t.compLex);
     if(strcmp(t.compLex,"L_LLAVE")==0){
         object();
     }
@@ -66,11 +84,10 @@ void element(){
 }
 
 void array(){
-    printf("array: %s\n",t.compLex);
     if(strcmp(t.compLex,"L_CORCHETE")==0){
         match("L_CORCHETE");
         ar();  
-        nivel--;
+        nivel--; // Cuando el array termina se baja un nivel.   
     }
     else if(strcmp(t.compLex,"R_CORCHETE")==0||strcmp(t.compLex,"R_LLAVE")==0||strcmp(t.compLex,"COMA")==0){
         sprintf(msg,"Se esperaba un \"[\" no \"%s\"", t.pe->lexema);
@@ -80,7 +97,6 @@ void array(){
 }
 
 void ar(){
-    printf("ar: %s\n",t.compLex);
     if(strcmp(t.compLex,"R_CORCHETE")==0){
         match("R_CORCHETE"); 
     }
@@ -96,12 +112,9 @@ void ar(){
 }
 
 void element_list(){
-    printf("element-list: %s +++\n",t.compLex);
     if(strcmp(t.compLex,"L_CORCHETE")==0||strcmp(t.compLex,"L_LLAVE")==0){
-        nivel++;
         element();
-        //nivel--;
-        el();       
+        el();    
     }
     else if(strcmp(t.compLex,"R_CORCHETE")==0){
         sprintf(msg,"Se esperaba un \"[\" o \"{\" no \"%s\"", t.pe->lexema);
@@ -112,12 +125,10 @@ void element_list(){
 }
 
 void el(){
-    printf("el: %s +++\n",t.compLex);
     if(strcmp(t.compLex,"COMA")==0){
         match("COMA");
-        nivel++;
+        nivel++; // Aumenta el nivel de tabulación ante un elemento.
         element();
-        //nivel--;
         el();
     }
     else if(strcmp(t.compLex,"R_CORCHETE")!=0){       
@@ -126,11 +137,10 @@ void el(){
 }
 
 void object(){
-    printf("object: %s ---\n",t.compLex);
     if(strcmp(t.compLex,"L_LLAVE")==0){
         match("L_LLAVE");
         o(); 
-        nivel--;
+        nivel--; // Cuando el object termina se baja un nivel.
     }
     else if(strcmp(t.compLex,"R_CORCHETE")==0||strcmp(t.compLex,"R_LLAVE")==0||strcmp(t.compLex,"COMA")==0){
         sprintf(msg,"Se esperaba un \"{\" no \"%s\"", t.pe->lexema);
@@ -140,7 +150,6 @@ void object(){
 }
 
 void o(){
-    printf("o: %s\n",t.compLex);
     if(strcmp(t.compLex,"R_LLAVE")==0){
         match("R_LLAVE");   
     }
@@ -156,10 +165,9 @@ void o(){
 }
 
 void attribute_list(){
-    printf("attribute-list: %s\n",t.compLex);
     if(strcmp(t.compLex,"LITERAL_CADENA")==0){
         attribute();
-        al();
+        al(); 
     }
     else if(strcmp(t.compLex,"R_LLAVE")==0){
         sprintf(msg,"Se esperaba un \"string\" no \"%s\"", t.pe->lexema);
@@ -169,20 +177,21 @@ void attribute_list(){
 }
 
 void attribute(){
-    printf("attribute: %s %s\n",t.compLex, t.pe->lexema);
     if(strcmp(t.compLex,"LITERAL_CADENA")==0){
+        // Puntero auxiliar para extraer las commillas.
         char* aux=t.pe->lexema;
         aux++;
         aux[strlen(aux)-1] = '\0';
+        
         sprintf(trad,"<%s>",aux);
-        strcpy(trad,tabulador(trad));
-        fputs(trad,output);
+        strcpy(trad,tabulador(trad)); // Tabulador devuelve las tabulaciones según el nivel
+        fputs(trad,output); // Se escribe en el archivo;
         attribute_name();
         match("DOS_PUNTOS");
         attribute_value(); 
+        destabulador(trad); // Se remueve todas las tabulaciones.
         sprintf(trad,"</%s>\n", aux);
-        strcpy(trad,tabulador(trad));
-        fputs(trad,output);
+        fputs(trad,output); // Se escribe en el archivo;
     }
     else if(strcmp(t.compLex,"R_LLAVE")==0||strcmp(t.compLex,"COMA")==0){
         sprintf(msg,"Se esperaba un \"string\" no \"%s\"", t.pe->lexema);
@@ -192,7 +201,6 @@ void attribute(){
 }
 
 void al(){
-    printf("al: %s\n",t.compLex);
     if(strcmp(t.compLex,"COMA")==0){
         match("COMA");
         attribute();
@@ -204,7 +212,6 @@ void al(){
 }
 
 void attribute_name(){
-    printf("attribute-name: %s \n",t.compLex);
     if(strcmp(t.compLex,"LITERAL_CADENA")==0){
         match("LITERAL_CADENA");
     }
@@ -212,12 +219,10 @@ void attribute_name(){
 }
 
 void attribute_value(){
-    printf("attribute-value: %s +++\n",t.compLex);
     if(strcmp(t.compLex,"L_LLAVE")==0||strcmp(t.compLex,"L_CORCHETE")==0){
         fputs("\n",output);
-        nivel++;
+        nivel++; // Aumenta de nivel por elemento en el archivo fuente.
         element();
-        //nivel--;
     }
     else if(strcmp(t.compLex,"LITERAL_CADENA")==0){
         fputs(t.pe->lexema,output);
@@ -246,22 +251,6 @@ void attribute_value(){
     else getToken(); 
 }
 
-char* tabulador(char* texto){
-    char *tabs= malloc(sizeof(texto));
-    for(short i=0;i<nivel;i++){
-        strcat(tabs,"\t");
-    }
-    strcat(tabs,texto);
-    return tabs;
-}
-
-void destabulador(char* texto){
-    for(short i=0;i<nivel+3;i++){
-        printf("%s\n",texto);
-        (*texto)++;
-    }
-}
-
 void inicio(void){
     json(); 
     if(strcmp(t.compLex,"EOF")!=0) error_msg("No se esperaba fin del archivo.");
@@ -270,7 +259,6 @@ void inicio(void){
 void parser(){
     while (strcmp(t.compLex,"EOF")!=0){
         getToken();
-        printf("parser: %s\n",t.compLex);
         inicio();
     }   
 }
